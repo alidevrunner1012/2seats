@@ -26,6 +26,7 @@ export const chatDeleteSchema = z.object({
   messageId: z.string().min(1).max(128),
 });
 export const handPressSchema = z.object({ roomId: z.string().min(1).max(128) });
+export const thumbKissSchema = handPressSchema;
 export const settingsUpdateSchema = z.object({
   roomId: z.string().min(1).max(128),
   everyoneCanControl: z.boolean().optional(),
@@ -94,6 +95,8 @@ export const socketPayloadSchemas = {
   'chat:delete': chatDeleteSchema,
   'reaction:hand-press': handPressSchema,
   'reaction:hand-release': handPressSchema,
+  'reaction:thumb-kiss-start': thumbKissSchema,
+  'reaction:thumb-kiss-end': thumbKissSchema,
   'host:update-settings': settingsUpdateSchema,
   'player:set-source': playerSetSourceSchema,
   'player:play': playerMutationSchema,

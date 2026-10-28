@@ -220,19 +220,25 @@ function DashboardContent(): JSX.Element {
       });
       return;
     }
+    const previousDate = plannedDate;
+    const previousDateInput = plannedDateInput;
+    window.localStorage.setItem(plannedDateKey, isoDate);
+    setPlannedDate(isoDate);
+    setPlannedDateInput(date);
     try {
       await apiFetch(`/rooms/${room.id}/dates`, {
         method: 'POST',
         body: { scheduledFor: isoDate },
       });
-      window.localStorage.setItem(plannedDateKey, isoDate);
-      setPlannedDate(isoDate);
-      setPlannedDateInput(date);
       showToast({
         title: 'Date saved',
         description: `Your next date is set in "${room.name}".`,
       });
     } catch (error) {
+      setPlannedDate(previousDate);
+      setPlannedDateInput(previousDateInput);
+      if (previousDate === '') window.localStorage.removeItem(plannedDateKey);
+      else window.localStorage.setItem(plannedDateKey, previousDate);
       showToast({
         title: 'We could not save that date',
         description:

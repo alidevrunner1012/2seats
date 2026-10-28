@@ -24,6 +24,7 @@ import {
   chatReactSchema,
   chatTypingSchema,
   handPressSchema,
+  thumbKissSchema,
   reactionSendSchema,
   roomJoinSchema,
   settingsUpdateSchema,
@@ -249,6 +250,16 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
     await this.handEvent(socket, body, false, ack);
   }
 
+  @SubscribeMessage('reaction:thumb-kiss-start')
+  async thumbKissStart(@ConnectedSocket() socket: RoomSocket, @MessageBody() body: unknown, ack?: (response: SocketAck) => void): Promise<void> {
+    await this.thumbKissEvent(socket, body, true, ack);
+  }
+
+  @SubscribeMessage('reaction:thumb-kiss-end')
+  async thumbKissEnd(@ConnectedSocket() socket: RoomSocket, @MessageBody() body: unknown, ack?: (response: SocketAck) => void): Promise<void> {
+    await this.thumbKissEvent(socket, body, false, ack);
+  }
+
   @SubscribeMessage('host:update-settings')
   async settings(@ConnectedSocket() socket: RoomSocket, @MessageBody() body: unknown, ack?: (response: SocketAck) => void): Promise<void> {
     const payload = settingsUpdateSchema.safeParse(body);
@@ -277,6 +288,26 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
     const values = await this.redis.client.hvals(key);
     if (values.length >= 2 && Math.max(...values.map(Number)) - Math.min(...values.map(Number)) <= 1_000) {
       this.server.to(this.roomName(payload.data.roomId)).emit('reaction:hands-joined', { roomId: payload.data.roomId });
+    }
+    this.ok(ack);
+  }
+
+  private async thumbKissEvent(socket: RoomSocket, body: unknown, pressed: boolean, ack?: (response: SocketAck) => void): Promise<void> {
+    const payload = thumbKissSchema.safeParse(body);
+    if (!payload.success || !socket.data.roomIds.has(payload.data.roomId)) return this.fail(ack, 'Room membership is required');
+    const userId = socket.data.user?.id;
+    if (userId === undefined) return this.fail(ack, 'Authentication is required');
+    const key = `reaction:thumb-kiss:${payload.data.roomId}`;
+    if (!pressed) {
+      await this.redis.client.hdel(key, userId);
+      this.server.to(this.roomName(payload.data.roomId)).emit('reaction:thumb-kiss-end', { roomId: payload.data.roomId });
+      return this.ok(ack);
+    }
+    await this.redis.client.hset(key, userId, String(Date.now()));
+    await this.redis.client.expire(key, 2);
+    const values = await this.redis.client.hvals(key);
+    if (values.length >= 2 && Math.max(...values.map(Number)) - Math.min(...values.map(Number)) <= 1_000) {
+      this.server.to(this.roomName(payload.data.roomId)).emit('reaction:thumb-kiss-start', { roomId: payload.data.roomId });
     }
     this.ok(ack);
   }

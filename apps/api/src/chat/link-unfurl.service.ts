@@ -13,27 +13,52 @@ export interface LinkMetadata {
 
 function isPrivateIp(address: string): boolean {
   if (net.isIPv4(address)) {
-    const parts = address.split('.').map(Number);
-    return parts[0] === undefined || parts[1] === undefined ||
-      parts[2] === undefined || parts[3] === undefined ||
-      parts[0] === 0 || parts[0] === 10 || parts[0] === 127 ||
-      (parts[0] === 169 && parts[1] === 254) ||
-      (parts[0] === 172 && parts[1] !== undefined && parts[1] >= 16 && parts[1] <= 31) ||
-      (parts[0] === 192 && (parts[1] === 168 || parts[1] === 0)) ||
-      (parts[0] === 100 && parts[1] !== undefined && parts[1] >= 64 && parts[1] <= 127) ||
-      (parts[0] === 198 && parts[1] !== undefined && parts[1] >= 18 && parts[1] <= 19) ||
-      parts[0] >= 224;
+    return isPrivateIpv4(address);
   }
   if (net.isIPv6(address)) {
     const normalized = address.toLowerCase();
+    const mappedIpv4 = mappedIpv4Address(normalized);
+    if (mappedIpv4 !== null) return isPrivateIpv4(mappedIpv4);
     return normalized === '::' || normalized === '::1' ||
-      normalized.startsWith('::ffff:127.') ||
-      normalized.startsWith('::ffff:10.') ||
-      normalized.startsWith('::ffff:192.168.') ||
       normalized.startsWith('fc') || normalized.startsWith('fd') ||
       normalized.startsWith('fe80:') || normalized.startsWith('ff');
   }
   return true;
+}
+
+function isPrivateIpv4(address: string): boolean {
+  const parts = address.split('.').map(Number);
+  const first = parts[0];
+  const second = parts[1];
+  return parts.length !== 4 || first === undefined || second === undefined ||
+    parts.some((part) => !Number.isInteger(part) || part < 0 || part > 255) ||
+    first === 0 || first === 10 || first === 127 ||
+    (first === 169 && second === 254) ||
+    (first === 172 && second >= 16 && second <= 31) ||
+    (first === 192 && (second === 0 || second === 168)) ||
+    (first === 100 && second >= 64 && second <= 127) ||
+    (first === 198 && second >= 18 && second <= 19) ||
+    first >= 224;
+}
+
+function mappedIpv4Address(address: string): string | null {
+  const marker = address.lastIndexOf('::ffff:');
+  if (marker !== 0) return null;
+  const suffix = address.slice(7);
+  if (net.isIPv4(suffix)) return suffix;
+  const hexParts = suffix.split(':');
+  if (hexParts.length === 2 && hexParts.every((part) => /^[\da-f]{1,4}$/i.test(part))) {
+    return mappedIpv4FromValue(
+      (Number.parseInt(hexParts[0]!, 16) << 16) | Number.parseInt(hexParts[1]!, 16),
+    );
+  }
+  if (!/^[\da-f]{1,8}$/i.test(suffix)) return null;
+  const value = Number.parseInt(suffix, 16);
+  return mappedIpv4FromValue(value);
+}
+
+function mappedIpv4FromValue(value: number): string {
+  return `${value >>> 24}.${(value >>> 16) & 255}.${(value >>> 8) & 255}.${value & 255}`;
 }
 
 const MAX_RESPONSE_BYTES = 1_048_576;

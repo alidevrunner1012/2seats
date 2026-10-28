@@ -13,6 +13,8 @@ type ChatSocketEvents = {
   'chat:message-deleted': (payload: { roomId: string; messageId: string }) => void;
   'player:state': (state: PlaybackState & { serverTime?: number }) => void;
   'playback:toast': (payload: { userId?: string; action?: string }) => void;
+  'reaction:thumb-kiss-start': (payload: { roomId: string }) => void;
+  'reaction:thumb-kiss-end': (payload: { roomId: string }) => void;
 };
 type ChatSocketCommands = {
   'room:join': (payload: { roomId: string }, ack: (response: SocketAck) => void) => void;
@@ -25,6 +27,8 @@ type ChatSocketCommands = {
   'player:seek': (payload: unknown, ack: (response: SocketAck) => void) => void;
   'player:rate': (payload: unknown, ack: (response: SocketAck) => void) => void;
   'room:set-mode': (payload: unknown, ack: (response: SocketAck) => void) => void;
+  'reaction:thumb-kiss-start': (payload: { roomId: string }, ack?: (response: SocketAck) => void) => void;
+  'reaction:thumb-kiss-end': (payload: { roomId: string }, ack?: (response: SocketAck) => void) => void;
 };
 type ChatSocket = Socket<ChatSocketEvents, ChatSocketCommands>;
 const SocketContext = createContext<ChatSocket | null>(null);

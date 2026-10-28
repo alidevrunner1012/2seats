@@ -14,6 +14,14 @@ describe('LinkUnfurlService', () => {
     },
   );
 
+  it.each(['::ffff:169.254.169.254', '::ffff:a9fe:a9fe', '::ffff:127.0.0.1'])(
+    'blocks IPv4-mapped private target %s',
+    async (hostname) => {
+      jest.mocked(dns.lookup).mockResolvedValue([{ address: hostname, family: 6 }] as never);
+      await expect(new LinkUnfurlService().fetch(`https://[${hostname}]/`)).rejects.toThrow('Private');
+    },
+  );
+
   it('blocks DNS rebinding when any resolved address is private', async () => {
     jest.mocked(dns.lookup).mockResolvedValue([
       { address: '93.184.216.34', family: 4 },

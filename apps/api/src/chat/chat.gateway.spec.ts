@@ -77,4 +77,16 @@ describe('ChatGateway', () => {
     await gateway.reaction(second, { roomId: 'room-1', reaction: 'heart' });
     expect(emitted.some((event) => event.event === 'reaction:heartbeat-sync')).toBe(true);
   });
+
+  it('emits thumb-kiss feedback when both people press together', async () => {
+    const { gateway, emitted } = setup();
+    const first = socket();
+    const second = socket();
+    (second as { data: { user: { id: string } } }).data.user.id = 'user-2';
+    await gateway.thumbKissStart(first, { roomId: 'room-1' });
+    await gateway.thumbKissStart(second, { roomId: 'room-1' });
+    expect(emitted.some((event) => event.event === 'reaction:thumb-kiss-start')).toBe(true);
+    await gateway.thumbKissEnd(first, { roomId: 'room-1' });
+    expect(emitted.some((event) => event.event === 'reaction:thumb-kiss-end')).toBe(true);
+  });
 });

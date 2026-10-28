@@ -95,7 +95,9 @@ export function GoogleCallback({
       .catch((cause: unknown) => {
         if (active) {
           setMessage(
-            cause instanceof Error ? cause.message : 'Google sign-in failed.',
+            cause instanceof Error
+              ? cause.message
+              : 'Google sign-in failed. Check the OAuth redirect URI and API credentials.',
           );
           setFailed(true);
         }

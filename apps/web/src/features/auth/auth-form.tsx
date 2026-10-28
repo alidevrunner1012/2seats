@@ -84,7 +84,8 @@ function GoogleButton(): JSX.Element {
       </Button>
       {unavailable && (
         <p role="alert" className="mt-2 text-center text-xs text-blush">
-          Google sign-in is not configured yet.
+          Google sign-in needs setup. Add NEXT_PUBLIC_GOOGLE_CLIENT_ID to the web
+          environment and matching GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET to the API.
         </p>
       )}
     </div>

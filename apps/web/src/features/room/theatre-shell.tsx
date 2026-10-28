@@ -22,6 +22,7 @@ import { BrowserPanel } from './browser/BrowserPanel';
 import { ScreenSharePanel } from './screen-share/ScreenSharePanel';
 import { ReactionLayer } from './reactions/ReactionLayer';
 import { EndOfMovie } from './reactions/EndOfMovie';
+import { ThumbKiss } from './thumb-kiss';
 
 interface RoomMember { id: string; displayName: string; avatarUrl: string | null }
 interface TheatreRoom { id: string; name: string; inviteCode: string; members: RoomMember[]; everyoneCanControl?: boolean }
@@ -111,6 +112,7 @@ function TheatreContent({ roomId, initialRoom }: TheatreProps): JSX.Element {
         <button className={`theatre-control-button ${state.dimLights ? 'active' : ''}`} onClick={state.toggleDimLights}><Moon className="size-4" /> Dim lights</button>
       </nav>
       <ReactionLayer />
+      <ThumbKiss roomId={roomId} />
       <EndOfMovie />
       <nav className="theatre-mobile-tabs" aria-label="Mobile panels">{(['screen', 'video', 'chat'] as PanelId[]).map((id) => <button key={id} className={mobileTab === id ? 'active' : ''} onClick={() => setMobileTab(id)}>{panelMeta[id].label}</button>)}</nav>
       <Dialog open={helpOpen} onOpenChange={setHelpOpen}><DialogContent><DialogTitle>Shortcuts for two</DialogTitle><DialogDescription>Keep your hands free for popcorn.</DialogDescription><div className="mt-5 grid gap-2 text-sm text-cream/70">{[['Space', 'Play / pause'], ['F', 'Focus screen'], ['M', 'Mute microphone'], ['V', 'Toggle camera'], ['C', 'Open chat'], ['Arrow keys', 'Nudge focused panel']].map(([key, label]) => <div key={key} className="flex justify-between rounded-xl bg-white/5 px-3 py-2"><kbd className="text-blush">{key}</kbd><span>{label}</span></div>)}</div></DialogContent></Dialog>
