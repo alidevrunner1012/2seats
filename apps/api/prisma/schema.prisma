@@ -1,0 +1,317 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum RoomRole {
+  HOST
+  PARTICIPANT
+}
+
+enum ReportStatus {
+  OPEN
+  PENDING
+  REVIEWED
+  RESOLVED
+  DISMISSED
+}
+
+enum UploadStatus {
+  PENDING
+  COMPLETE
+  FAILED
+  READY
+  REJECTED
+}
+
+enum BrowserSessionStatus {
+  STARTING
+  RUNNING
+  STOPPED
+  EXPIRED
+  FAILED
+}
+
+enum EmailTokenType {
+  VERIFY_EMAIL
+  PASSWORD_RESET
+}
+
+model User {
+  id                     String            @id @default(cuid())
+  email                  String            @unique
+  displayName            String
+  passwordHash           String?
+  avatarUrl              String?
+  emailVerifiedAt        DateTime?
+  deletedAt              DateTime?
+  createdAt              DateTime          @default(now())
+  updatedAt              DateTime          @updatedAt
+  refreshTokens          RefreshToken[]
+  createdRooms           Room[]            @relation("RoomCreator")
+  roomMemberships        RoomMember[]
+  messages               Message[]
+  reactions              MessageReaction[]
+  createdBrowserSessions BrowserSession[]  @relation("BrowserSessionCreator")
+  submittedReports       Report[]          @relation("ReportReporter")
+  receivedReports        Report[]          @relation("ReportReportedUser")
+  blocksMade             Block[]           @relation("Blocker")
+  blocksReceived         Block[]           @relation("Blocked")
+  auditLogs              AuditLog[]        @relation("AuditActor")
+  uploads                Upload[]
+  scheduledDates         ScheduledDate[]
+  emailTokens            EmailToken[]
+
+  @@index([deletedAt])
+}
+
+model RefreshToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  familyId  String
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+  @@index([familyId, revokedAt])
+  @@index([revokedAt])
+}
+
+model EmailToken {
+  id         String         @id @default(cuid())
+  userId     String
+  tokenHash  String         @unique
+  type       EmailTokenType
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, type, expiresAt])
+  @@index([consumedAt])
+}
+
+model Room {
+  id                 String           @id @default(cuid())
+  inviteCode         String           @unique
+  name               String
+  createdById        String
+  maxParticipants    Int              @default(2)
+  isPrivate          Boolean          @default(true)
+  locked             Boolean          @default(false)
+  everyoneCanControl Boolean          @default(true)
+  chatEnabled        Boolean          @default(true)
+  screenShareEnabled Boolean          @default(true)
+  idempotencyKey     String?          @unique
+  deletedAt          DateTime?
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  createdBy          User             @relation("RoomCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  members            RoomMember[]
+  messages           Message[]
+  browserSessions    BrowserSession[]
+  watchHistory       WatchHistory[]
+  scheduledDates     ScheduledDate[]
+
+  @@index([createdById])
+  @@index([deletedAt])
+}
+
+model RoomMember {
+  id        String    @id @default(cuid())
+  roomId    String
+  userId    String
+  role      RoomRole  @default(PARTICIPANT)
+  joinedAt  DateTime  @default(now())
+  leftAt    DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  room      Room      @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([roomId, userId])
+  @@index([userId])
+  @@index([roomId, leftAt])
+}
+
+model Message {
+  id              String            @id @default(cuid())
+  roomId          String
+  senderId        String
+  content         String
+  linkUrl         String?
+  linkTitle       String?
+  linkDescription String?
+  linkImage       String?
+  deletedAt       DateTime?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  room            Room              @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  sender          User              @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  reactions       MessageReaction[]
+  reports         Report[]
+
+  @@index([roomId, createdAt])
+  @@index([senderId])
+  @@index([deletedAt])
+}
+
+model MessageReaction {
+  id        String   @id @default(cuid())
+  messageId String
+  userId    String
+  emoji     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, userId, emoji])
+  @@index([userId])
+}
+
+model BrowserSession {
+  id        String               @id
+  roomId    String
+  userId    String
+  status    BrowserSessionStatus @default(STARTING)
+  handle    String?
+  slot      Int
+  httpPort  Int
+  createdAt DateTime             @default(now())
+  startedAt DateTime?
+  expiresAt DateTime
+  endedAt   DateTime?
+  room      Room                 @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user      User                 @relation("BrowserSessionCreator", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([roomId, status])
+  @@index([userId, status])
+  @@index([status, expiresAt])
+}
+
+model Report {
+  id             String       @id @default(cuid())
+  reporterId     String
+  reportedUserId String?
+  messageId      String?
+  reason         String
+  details        String?
+  status         ReportStatus @default(PENDING)
+  deletedAt      DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  resolvedAt     DateTime?
+  reporter       User         @relation("ReportReporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  reportedUser   User?        @relation("ReportReportedUser", fields: [reportedUserId], references: [id], onDelete: SetNull)
+  message        Message?     @relation(fields: [messageId], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@index([reporterId])
+  @@index([reportedUserId])
+  @@index([deletedAt])
+}
+
+model TosAcceptance {
+  userId     String
+  version    String
+  acceptedAt DateTime @default(now())
+  @@id([userId, version])
+}
+
+model DmcaTakedown {
+  id        String   @id @default(cuid())
+  kind      String
+  value     String   @unique
+  note      String?
+  createdBy String
+  createdAt DateTime @default(now())
+}
+
+model Block {
+  id            String   @id @default(cuid())
+  blockerId     String
+  blockedUserId String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  blocker       User     @relation("Blocker", fields: [blockerId], references: [id], onDelete: Cascade)
+  blockedUser   User     @relation("Blocked", fields: [blockedUserId], references: [id], onDelete: Cascade)
+
+  @@unique([blockerId, blockedUserId])
+  @@index([blockedUserId])
+}
+
+model AuditLog {
+  id         String    @id @default(cuid())
+  actorId    String?
+  action     String
+  entityType String
+  entityId   String
+  targetId   String?
+  resolvedAt DateTime?
+  metadata   Json?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  actor      User?     @relation("AuditActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([actorId, createdAt])
+  @@index([entityType, entityId, createdAt])
+  @@index([action, createdAt])
+}
+
+model Upload {
+  id          String       @id @default(cuid())
+  ownerId     String
+  objectKey   String       @unique
+  contentType String
+  sizeBytes   BigInt
+  status      UploadStatus @default(PENDING)
+  deletedAt   DateTime?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  owner       User         @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@index([ownerId, status])
+  @@index([deletedAt])
+}
+
+model WatchHistory {
+  id           String    @id @default(cuid())
+  roomId       String
+  title        String
+  sourceUrl    String
+  startedAt    DateTime
+  endedAt      DateTime?
+  participants Json
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  room         Room      @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  @@index([roomId, startedAt])
+}
+
+model ScheduledDate {
+  id           String   @id @default(cuid())
+  roomId       String
+  createdById  String
+  scheduledFor DateTime
+  note         String?
+  reminderSent Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  room         Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  createdBy    User     @relation(fields: [createdById], references: [id], onDelete: Cascade)
+
+  @@index([roomId, scheduledFor])
+  @@index([createdById])
+  @@index([reminderSent, scheduledFor])
+}

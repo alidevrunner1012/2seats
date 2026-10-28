@@ -1,0 +1,14 @@
+port: 7880
+rtc:
+  tcp_port: 7881
+  udp_port: 7882
+redis:
+  address: redis:6379
+keys:
+  devkey: devsecret-2seats-local-key-32-chars-min
+turn:
+  enabled: true
+  domain: turn.localhost
+  tls_port: 443
+  cert_file: /etc/coturn/certs/fullchain.pem
+  key_file: /etc/coturn/certs/privkey.pem

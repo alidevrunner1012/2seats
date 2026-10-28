@@ -1,0 +1,12 @@
+node_modules/
+dist/
+coverage/
+.next/
+.vercel/
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+.turbo/
+apps/api/.prisma/
+infra/coturn/certs/*.pem

@@ -1,0 +1,17 @@
+{
+  "moduleFileExtensions": ["js", "json", "ts"],
+  "rootDir": ".",
+  "testRegex": ".*\\.e2e-spec\\.ts$",
+  "transform": {
+    "^.+\\.(t|j)s$": ["ts-jest", { "tsconfig": "tsconfig.json" }]
+  },
+  "transformIgnorePatterns": [
+    "node_modules/(?!@nestjs/schedule/)"
+  ],
+  "testEnvironment": "node",
+  "moduleNameMapper": {
+    "^@nestjs/schedule$": "<rootDir>/schedule.mock.ts",
+    "^@kubernetes/client-node$": "<rootDir>/kubernetes.mock.ts"
+  },
+  "testTimeout": 120000
+}

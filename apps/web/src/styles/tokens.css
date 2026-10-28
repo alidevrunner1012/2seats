@@ -1,0 +1,13 @@
+:root {
+  color-scheme: dark;
+  --background: 327 40% 7%;
+  --foreground: 24 100% 96%;
+  --card: 327 39% 11%;
+  --border: 340 78% 58% / 0.2;
+  --input: 340 78% 58% / 0.25;
+  --ring: 344 78% 59%;
+  --primary: 344 78% 59%;
+  --secondary: 327 59% 15%;
+  --muted: 327 28% 17%;
+  --accent: 30 100% 71%;
+}

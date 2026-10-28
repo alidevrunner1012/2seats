@@ -1,0 +1,41 @@
+{
+  "name": "2seats",
+  "private": true,
+  "packageManager": "pnpm@9.15.4",
+  "scripts": {
+    "prisma": "corepack pnpm --filter @2seats/api exec dotenv -e .env.example -- prisma",
+    "dev": "corepack pnpm --filter @2seats/web dev",
+    "build": "corepack pnpm --filter @2seats/web build",
+    "test": "corepack pnpm --filter @2seats/web test && corepack pnpm --filter @2seats/api test:unit",
+    "lint": "corepack pnpm --filter @2seats/web lint && corepack pnpm --filter @2seats/api lint",
+    "typecheck": "corepack pnpm --filter @2seats/web typecheck && corepack pnpm --filter @2seats/api typecheck",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "husky": "^9.1.7",
+    "lint-staged": "^15.2.11"
+  },
+  "lint-staged": {
+    "apps/web/**/*.{ts,tsx,js,jsx}": [
+      "corepack pnpm --filter @2seats/web exec eslint --fix"
+    ],
+    "apps/api/**/*.{ts,tsx}": [
+      "corepack pnpm --filter @2seats/api exec eslint --fix"
+    ]
+  },
+  "pnpm": {
+    "overrides": {
+      "esbuild@<=0.24.2": "0.25.0",
+      "vite": "6.4.4",
+      "postcss@<=8.5.22": "8.5.31",
+      "deepmerge-ts@<8.0.0": "8.0.2",
+      "fastify@<5.12.5": "5.12.7",
+      "js-yaml@>=5.0.0 <=5.4.0": "5.4.1",
+      "postcss-selector-parser@<7.1.6": "7.1.6",
+      "undici@<6.29.1": "6.29.1",
+      "uuid@<11.1.1": "11.1.1",
+      "@fastify/busboy@<3.2.2": "3.2.2",
+      "tinypool@<2.1.2": "2.1.2"
+    }
+  }
+}
