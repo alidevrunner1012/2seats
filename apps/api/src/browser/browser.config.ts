@@ -13,6 +13,13 @@ export const browserConfig = () => ({
   internalHost: process.env.BROWSER_INTERNAL_HOST ?? 'localhost',
   /** IP that WebRTC clients should connect to (NEKO NAT1TO1). */
   publicIp: process.env.BROWSER_PUBLIC_IP ?? '127.0.0.1',
-  image: process.env.NEKO_IMAGE ?? 'ghcr.io/m1k1o/neko/chromium:latest',
+  image: validatedImage(process.env.NEKO_IMAGE),
 });
+function validatedImage(value: string | undefined): string {
+  const image = value ?? 'ghcr.io/m1k1o/neko/chromium:latest';
+  if (process.env.NODE_ENV === 'production' && !/@sha256:[a-f0-9]{64}$/i.test(image)) {
+    throw new Error('NEKO_IMAGE must use an immutable sha256 digest in production');
+  }
+  return image;
+}
 export type BrowserConfig = ReturnType<typeof browserConfig>;
